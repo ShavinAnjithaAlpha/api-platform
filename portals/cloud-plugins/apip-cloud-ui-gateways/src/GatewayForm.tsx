@@ -161,18 +161,16 @@ const GatewayForm: FC<GatewayFormProps> = ({
     nameError ??
     (derivedHandle ? `Handle: ${derivedHandle}` : isEdit ? undefined : NAME_HELPER_TEXT);
 
-  // "First of its kind" is scoped to the chosen hosting too: a managed and a
-  // self-hosted gateway of the same type and environment are tracked by two
-  // entirely separate mechanisms (the binding table vs. a client-side
-  // property marker — see `selfHostedGatewaysApi`), so one becoming the
-  // default says nothing about the other.
+  // "First of its kind" counts managed gateways only: only a managed gateway can
+  // be an environment's default, so a self-hosted one neither becomes the
+  // default nor stops the first managed gateway from becoming it.
   const isFirstOfType =
     !isEdit &&
-    hosting !== null &&
+    hosting === 'managed' &&
     environmentId.length > 0 &&
     !gateways.some(
       (candidate) =>
-        candidate.hosting === hosting &&
+        candidate.hosting === 'managed' &&
         candidate.environmentId === environmentId &&
         candidate.type === type
     );
@@ -218,7 +216,13 @@ const GatewayForm: FC<GatewayFormProps> = ({
         isDefault,
       };
       if (hosting === 'self-hosted') {
-        await onSubmitSelfHosted({ ...input, url: url.trim() || undefined, version: version || undefined });
+        // A self-hosted gateway is never the default, whatever the switch last held.
+        await onSubmitSelfHosted({
+          ...input,
+          isDefault: false,
+          url: url.trim() || undefined,
+          version: version || undefined,
+        });
       } else {
         await onSubmit(input);
       }
@@ -421,28 +425,32 @@ const GatewayForm: FC<GatewayFormProps> = ({
               ) : null}
 
               <Grid size={{ xs: 12 }}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={isDefault}
-                      // Locked in three cases: nothing to be the default of until an
-                      // environment is chosen; an existing default cannot be unset
-                      // here (it is handed over by marking another gateway); and the
-                      // first gateway of its kind BECOMES the default whatever this
-                      // says, so offering to untick it would be a lie.
-                      disabled={
-                        (gateway?.isDefault ?? false) || environmentId.length === 0 || isFirstOfType
-                      }
-                      onChange={(event) => setIsDefault(event.target.checked)}
-                    />
-                  }
-                  label="Default gateway for this environment"
-                />
                 {isSelfHosted ? (
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: -1 }}>
-                    Self-hosted gateways track their own default separately from WSO2-managed ones.
+                  // Only a WSO2-managed gateway can be the environment's default, so
+                  // there is no switch to offer; say why rather than leave it missing.
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                    Self-hosted gateways are never the default gateway of an environment. Select this
+                    gateway explicitly when you deploy to it.
                   </Typography>
-                ) : null}
+                ) : (
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={isDefault}
+                        // Locked in three cases: nothing to be the default of until an
+                        // environment is chosen; an existing default cannot be unset
+                        // here (it is handed over by marking another gateway); and the
+                        // first gateway of its kind BECOMES the default whatever this
+                        // says, so offering to untick it would be a lie.
+                        disabled={
+                          (gateway?.isDefault ?? false) || environmentId.length === 0 || isFirstOfType
+                        }
+                        onChange={(event) => setIsDefault(event.target.checked)}
+                      />
+                    }
+                    label="Default gateway for this environment"
+                  />
+                )}
               </Grid>
             </>
           ) : null}
