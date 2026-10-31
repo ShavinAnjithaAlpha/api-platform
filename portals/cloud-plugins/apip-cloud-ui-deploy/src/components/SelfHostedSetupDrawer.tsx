@@ -153,6 +153,9 @@ const SelfHostedSetupDrawer: FC<SelfHostedSetupDrawerProps> = ({
       setToken(await onReconfigureToken());
       setRegenerated(true);
     } catch (error) {
+      // The revoke may have gone through before the failure, so the token on screen
+      // can no longer be trusted; the Reconfigure prompt takes its place.
+      setToken(null);
       onError(error instanceof Error ? error.message : 'Unable to reconfigure the registration token.');
     } finally {
       setRegenerating(false);

@@ -215,6 +215,9 @@ const GatewayOverview: FC<GatewayOverviewProps> = ({
       setHasJustRegeneratedToken(true);
       notify(`Generated a new registration token for "${gateway.name}".`, 'success');
     } catch (generateError) {
+      // The revoke may have gone through before the failure, so the token on screen
+      // can no longer be trusted; the Reconfigure prompt takes its place.
+      setRegistrationToken(null);
       notify(
         generateError instanceof Error ? generateError.message : 'Unable to reconfigure the registration token.',
         'error',

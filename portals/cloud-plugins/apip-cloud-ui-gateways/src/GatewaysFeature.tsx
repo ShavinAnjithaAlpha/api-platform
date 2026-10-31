@@ -99,14 +99,34 @@ const GatewaysFeature: FC<GatewaysFeatureProps> = ({ port, gatewayTypes }) => {
         setError(null);
       }
       try {
-        const [managedList, selfHostedList, environmentList] = await Promise.all([
+        // The two kinds of gateway come from different resources, so one failing must not hide
+        // the other: each list is read on its own and only a failure of both is an error.
+        const [managedResult, selfHostedResult, environmentResult] = await Promise.allSettled([
           client.listGateways(gatewayTypes),
           selfHostedClient.listGateways(gatewayTypes),
           client.listEnvironments(),
         ]);
         if (seq !== loadSeqRef.current) return;
-        setGateways([...managedList, ...selfHostedList]);
-        setEnvironments(environmentList);
+        if (environmentResult.status === 'rejected') throw environmentResult.reason;
+        if (managedResult.status === 'rejected' && selfHostedResult.status === 'rejected') {
+          throw managedResult.reason;
+        }
+        // A list that failed keeps what was last loaded for its kind, rather than emptying it.
+        setGateways((previous) => [
+          ...(managedResult.status === 'fulfilled'
+            ? managedResult.value
+            : previous.filter((gateway) => gateway.hosting === 'managed')),
+          ...(selfHostedResult.status === 'fulfilled'
+            ? selfHostedResult.value
+            : previous.filter((gateway) => gateway.hosting === 'self-hosted')),
+        ]);
+        setEnvironments(environmentResult.value);
+        if (!silent && (managedResult.status === 'rejected' || selfHostedResult.status === 'rejected')) {
+          notify(
+            `${managedResult.status === 'rejected' ? 'WSO2 managed' : 'Self-hosted'} gateways could not be loaded.`,
+            'warning'
+          );
+        }
         // Any load that reaches fresh data clears a previous failure.
         setError(null);
       } catch (loadError) {
