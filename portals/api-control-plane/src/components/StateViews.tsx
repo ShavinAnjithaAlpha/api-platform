@@ -23,7 +23,8 @@ import { defineMessages, useIntl } from 'react-intl';
 
 import { AppLoader } from './AppLoader';
 import { SecondaryText } from './common/SecondaryText';
-import { Can } from '@/permissions';
+import { CanCreate } from '@/permissions';
+import type { LimitedComponent } from '@/hooks/useResourceLimits';
 
 const messages = defineMessages({
   forbiddenTitle: {
@@ -62,6 +63,15 @@ type EmptyStateProps = {
   onAction?: () => void;
   /** Optional `operationId` to gate the action button behind. */
   operationId?: string;
+  /**
+   * Which product component the action creates, for the quota check. Omit for
+   * an action nothing caps, and only `operationId` gates the button.
+   *
+   * A first-run empty state is exactly where a quota is easiest to miss: the
+   * count that has run out is the organization's, not this list's, so "no rows
+   * here" says nothing about whether another one may be created.
+   */
+  component?: LimitedComponent;
 };
 
 /**
@@ -76,14 +86,15 @@ export function EmptyState({
   illustration,
   onAction,
   operationId = '',
+  component,
 }: EmptyStateProps) {
   const action =
     actionLabel && onAction ? (
-      <Can do={operationId} denied="disable">
+      <CanCreate do={operationId} component={component} denied="disable">
         <Button onClick={onAction} startIcon={actionIcon} variant="contained">
           {actionLabel}
         </Button>
-      </Can>
+      </CanCreate>
     ) : null;
 
   if (illustration) {

@@ -43,7 +43,7 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/StateViews';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { routes } from '@/routes/paths';
 import { matchesApiType, type ApiTypeFilter } from './apiTypeFilter';
-import { Can } from '@/permissions/Can';
+import { CanCreate } from '@/permissions/CanCreate';
 
 type ViewMode = 'grid' | 'list';
 
@@ -300,9 +300,16 @@ export function ApiList({
   return (
     <>
       {isFirstRun ? (
+        /*
+          Same `restApis` verdict as the populated list's create button below:
+          an empty project says nothing about the organization's quota, which
+          is counted across every project, so a capped organization reaches
+          its first-run prompt here with no room to act on it.
+        */
         <EmptyState
           actionIcon={<Plus />}
           actionLabel={intl.formatMessage(messages.emptyAction)}
+          component="restApis"
           description={intl.formatMessage(messages.emptyDescription)}
           illustration={<ImportApiIllustration />}
           onAction={createApi}
@@ -353,11 +360,11 @@ export function ApiList({
                   <LayoutGrid size={18} />
                 </ToggleButton>
               </ToggleButtonGroup>
-              <Can do="CreateRESTAPI" denied="hide">
+              <CanCreate component="restApis" denied="hide" do="CreateRESTAPI">
                 <Button onClick={createApi} startIcon={<Plus size={18} />} variant="contained">
                   <FormattedMessage {...messages.createApiButton} />
                 </Button>
-              </Can>
+              </CanCreate>
             </Box>
 
             {apis.length === 0 ? (
