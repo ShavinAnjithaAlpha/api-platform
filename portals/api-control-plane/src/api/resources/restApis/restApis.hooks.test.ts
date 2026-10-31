@@ -24,6 +24,7 @@ import {
   accepts,
   collection,
   failure,
+  manyRestApis,
   noContent,
   recorder,
   resource,
@@ -33,6 +34,7 @@ import { renderApiHook, settle } from '../../../test/renderApiHook';
 import { server } from '../../../test/server';
 import { resetHttpClient } from '../../core/http';
 import {
+  useAllRestApis,
   useCreateRestApi,
   useDeleteRestApi,
   useRestApi,
@@ -364,5 +366,62 @@ describe('useDeleteRestApi', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(queryClient.getQueryState(otherOrgKey)?.isInvalidated).toBe(false);
+  });
+});
+
+describe('useAllRestApis — windowing', () => {
+  const offsets = () => requests.calls.map((call) => call.params.get('offset')).sort();
+
+  it('fetches every page when no window is asked for', async () => {
+    server.use(collection('/rest-apis', manyRestApis(250), { record: requests }));
+
+    const { result } = renderApiHook(() => useAllRestApis());
+
+    await waitFor(() => expect(result.current.data?.list).toHaveLength(250));
+    // Server pages are capped at 100, so 250 items take three requests.
+    expect(offsets()).toEqual(['0', '100', '200']);
+  });
+
+  it('fetches only the first `max` items in one request, and still reports the total', async () => {
+    server.use(collection('/rest-apis', manyRestApis(250), { record: requests }));
+
+    const { result } = renderApiHook(() => useAllRestApis({}, {}, { max: 10 }));
+
+    await waitFor(() => expect(result.current.data?.list).toHaveLength(10));
+    await settle();
+    expect(requests.count()).toBe(1);
+    expect(requests.last()?.params.get('limit')).toBe('10');
+    expect(requests.last()?.params.get('offset')).toBe('0');
+    expect(result.current.data?.pagination.total).toBe(250);
+  });
+
+  it('spans several requests when `max` exceeds the server page size', async () => {
+    server.use(collection('/rest-apis', manyRestApis(250), { record: requests }));
+
+    const { result } = renderApiHook(() => useAllRestApis({}, {}, { max: 150 }));
+
+    await waitFor(() => expect(result.current.data?.list.length).toBeGreaterThanOrEqual(150));
+    await settle();
+    // 150 needs the first two server pages, not all three.
+    expect(offsets()).toEqual(['0', '100']);
+  });
+
+  it('asks for no more than exist when `max` is larger than the collection', async () => {
+    server.use(collection('/rest-apis', manyRestApis(5), { record: requests }));
+
+    const { result } = renderApiHook(() => useAllRestApis({}, {}, { max: 50 }));
+
+    await waitFor(() => expect(result.current.data?.list).toHaveLength(5));
+    await settle();
+    expect(requests.count()).toBe(1);
+  });
+
+  it('sends no request while disabled', async () => {
+    server.use(collection('/rest-apis', manyRestApis(5), { record: requests }));
+
+    renderApiHook(() => useAllRestApis({}, {}, { enabled: false }));
+
+    await settle();
+    expect(requests.count()).toBe(0);
   });
 });

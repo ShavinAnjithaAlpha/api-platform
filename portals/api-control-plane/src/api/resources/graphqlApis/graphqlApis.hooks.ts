@@ -101,6 +101,15 @@ export const useGraphQLApiCounts = (
 const LIST_MAX_PAGE_SIZE = 100;
 
 /**
+ * Options for the fetch-everything list hook.
+ *
+ * `max` fetches only the first `max` items (in as many requests as that takes)
+ * rather than the whole collection; `pagination.total` still reports every
+ * item. `enabled: false` skips the request, for a list a filter has ruled out.
+ */
+type AllApisOptions = { enabled?: boolean; max?: number };
+
+/**
  * Every GraphQL API in scope, fetched across as many pages as required.
  * Mirrors `useAllRestApis` exactly — see that hook for why this fans out
  * rather than trusting a single page.
@@ -108,15 +117,17 @@ const LIST_MAX_PAGE_SIZE = 100;
 export const useAllGraphQLApis = (
   filters: Omit<GraphQLApiListFilters, 'limit' | 'offset'> = {},
   overrides: { orgId?: string; projectId?: string } = {},
+  options: AllApisOptions = {},
 ) => {
   const { org, projectId } = useApiScope(overrides);
-  const enabled = Boolean(org && projectId);
+  const enabled = Boolean(org && projectId) && options.enabled !== false;
+  const firstLimit = options.max ? Math.min(LIST_MAX_PAGE_SIZE, options.max) : LIST_MAX_PAGE_SIZE;
 
   const firstPage = useQuery({
     ...graphQLApiQueries.list(org!, {
       projectId: projectId!,
       ...filters,
-      limit: LIST_MAX_PAGE_SIZE,
+      limit: firstLimit,
       offset: 0,
     }),
     enabled,
@@ -126,8 +137,10 @@ export const useAllGraphQLApis = (
   });
 
   const total = firstPage.data?.pagination.total ?? 0;
+  // With `max`, only the first `max` items are wanted, however many exist.
+  const wanted = options.max ? Math.min(total, options.max) : total;
   const remainingOffsets = Array.from(
-    { length: Math.max(0, Math.ceil(total / LIST_MAX_PAGE_SIZE) - 1) },
+    { length: Math.max(0, Math.ceil(wanted / LIST_MAX_PAGE_SIZE) - 1) },
     (_, index) => (index + 1) * LIST_MAX_PAGE_SIZE,
   );
 

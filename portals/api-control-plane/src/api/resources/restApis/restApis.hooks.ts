@@ -131,6 +131,15 @@ export const useRestApiCounts = (
 const LIST_MAX_PAGE_SIZE = 100;
 
 /**
+ * Options for the fetch-everything list hook.
+ *
+ * `max` fetches only the first `max` items (in as many requests as that takes)
+ * rather than the whole collection; `pagination.total` still reports every
+ * item. `enabled: false` skips the request, for a list a filter has ruled out.
+ */
+type AllApisOptions = { enabled?: boolean; max?: number };
+
+/**
  * Every REST API in scope, fetched across as many pages as required.
  *
  * `ListRESTAPIs` caps `limit` at {@link LIST_MAX_PAGE_SIZE} server-side, so a
@@ -144,15 +153,17 @@ const LIST_MAX_PAGE_SIZE = 100;
 export const useAllRestApis = (
   filters: Omit<RestApiListFilters, 'limit' | 'offset'> = {},
   overrides: { orgId?: string; projectId?: string } = {},
+  options: AllApisOptions = {},
 ) => {
   const { org, projectId } = useApiScope(overrides);
-  const enabled = Boolean(org && projectId);
+  const enabled = Boolean(org && projectId) && options.enabled !== false;
+  const firstLimit = options.max ? Math.min(LIST_MAX_PAGE_SIZE, options.max) : LIST_MAX_PAGE_SIZE;
 
   const firstPage = useQuery({
     ...restApiQueries.list(org!, {
       projectId: projectId!,
       ...filters,
-      limit: LIST_MAX_PAGE_SIZE,
+      limit: firstLimit,
       offset: 0,
     }),
     enabled,
@@ -164,8 +175,10 @@ export const useAllRestApis = (
   });
 
   const total = firstPage.data?.pagination.total ?? 0;
+  // With `max`, only the first `max` items are wanted, however many exist.
+  const wanted = options.max ? Math.min(total, options.max) : total;
   const remainingOffsets = Array.from(
-    { length: Math.max(0, Math.ceil(total / LIST_MAX_PAGE_SIZE) - 1) },
+    { length: Math.max(0, Math.ceil(wanted / LIST_MAX_PAGE_SIZE) - 1) },
     (_, index) => (index + 1) * LIST_MAX_PAGE_SIZE,
   );
 
