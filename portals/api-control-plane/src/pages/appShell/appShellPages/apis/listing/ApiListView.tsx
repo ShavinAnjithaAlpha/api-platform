@@ -21,7 +21,7 @@ import { defineMessages, useIntl } from 'react-intl';
 
 import { thumbnailApiType, type ListableApi } from './apiListItem';
 import { ListingCardTable, type ListingCardColumn } from '@/components/common/ListingCardTable';
-import { apiDescriptionSx, ApiDeleteLabelButton, VersionChip } from './components/RestApiChips';
+import { apiDescriptionSx, ApiDeleteLabelButton } from './components/RestApiChips';
 import { apiKindLabel } from '../utils/restApiDisplay';
 import { ApiThumbnailAvatar } from '../components/ApiThumbnailAvatar';
 import { relativeTime } from '@/utils/relativeTime';
@@ -68,12 +68,9 @@ export function ApiListView({ apis, onOpen, onDelete }: ApiListViewProps) {
             size={AVATAR_SIZE}
           />
           <Box sx={{ minWidth: 0 }}>
-            <Stack alignItems="center" direction="row" spacing={1} sx={{ minWidth: 0 }}>
-              <Typography component="div" noWrap sx={{ fontWeight: 600 }} variant="subtitle2">
-                {api.displayName}
-              </Typography>
-              <VersionChip version={api.version} />
-            </Stack>
+            <Typography component="div" noWrap sx={{ fontWeight: 600 }} variant="subtitle2">
+              {api.displayName}
+            </Typography>
             <Typography
               color="text.secondary"
               sx={{ ...apiDescriptionSx(1), display: { xs: '-webkit-box', md: 'none' } }}

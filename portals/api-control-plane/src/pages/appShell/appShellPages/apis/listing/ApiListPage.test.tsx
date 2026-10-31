@@ -549,30 +549,30 @@ describe('ApiListPage — row and card actions', () => {
   });
 });
 
-describe('ApiListPage — telling versions apart', () => {
+describe('ApiListPage — API type and version display', () => {
   const versions = [
-    aRestApi({ id: 'orders-v1', displayName: 'Orders API', version: '1.0.0' }),
-    aRestApi({ id: 'orders-v2', displayName: 'Orders API', version: '2.0.0' }),
+    aRestApi({ id: 'orders-v1', displayName: 'Orders API', version: '1.0.0', kind: 'RestApi' }),
+    aRestApi({ id: 'orders-v2', displayName: 'Orders API', version: '2.0.0', kind: 'RestApi' }),
   ];
 
-  it('shows each version next to the name in the list view', async () => {
-    server.use(collection('/rest-apis', versions));
-    renderPage();
-
-    const rows = await screen.findByTestId('api-list-view');
-    expect(within(rows).getByText('v1.0.0')).toBeInTheDocument();
-    expect(within(rows).getByText('v2.0.0')).toBeInTheDocument();
-  });
-
-  it('shows each version next to the name on the grid cards', async () => {
+  it('shows the API type as a chip under the name on a grid card, without the version', async () => {
     server.use(collection('/rest-apis', versions));
     const { user } = renderPage();
 
     await screen.findAllByText('Orders API');
     await user.click(screen.getByRole('button', { name: 'Grid view' }));
 
-    expect(await screen.findByText('v1.0.0')).toBeInTheDocument();
-    expect(screen.getByText('v2.0.0')).toBeInTheDocument();
+    expect(await screen.findAllByText('REST API')).toHaveLength(versions.length);
+    expect(screen.queryByText('v1.0.0')).not.toBeInTheDocument();
+  });
+
+  it('shows the API type, not the version, in the list view', async () => {
+    server.use(collection('/rest-apis', versions));
+    renderPage();
+
+    const rows = await screen.findByTestId('api-list-view');
+    expect(within(rows).getAllByText('REST API')).toHaveLength(versions.length);
+    expect(within(rows).queryByText('v1.0.0')).not.toBeInTheDocument();
   });
 });
 

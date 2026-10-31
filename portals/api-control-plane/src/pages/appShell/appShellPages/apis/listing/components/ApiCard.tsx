@@ -21,7 +21,7 @@ import { defineMessages, useIntl } from 'react-intl';
 
 import { thumbnailApiType, type ListableApi } from '../apiListItem';
 import { ApiThumbnailAvatar } from '../../components/ApiThumbnailAvatar';
-import { VersionChip } from './RestApiChips';
+import { ApiKindChip } from './RestApiChips';
 import { relativeTime } from '@/utils/relativeTime';
 import { useCan } from '@/permissions/useCan';
 
@@ -66,13 +66,15 @@ export function ApiCard({ api, onOpen, onDelete }: ApiCardProps) {
       }
       onClick={() => onOpen(api)}
       onDelete={onDelete && canDelete ? () => onDelete(api) : undefined}
-      // The name alone is ambiguous across versions of the same API.
+      // The name with its type chip beneath it.
       title={
-        <Box component="span" sx={{ alignItems: 'center', display: 'flex', gap: 1, minWidth: 0 }}>
+        <Box component="span" sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, minWidth: 0 }}>
           <Box component="span" sx={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {api.displayName}
           </Box>
-          <VersionChip version={api.version} />
+          <Box component="span" sx={{ display: 'flex', gap: 1 }}>
+            <ApiKindChip kind={api.kind} />
+          </Box>
         </Box>
       }
       updatedDateTime={updated || undefined}
