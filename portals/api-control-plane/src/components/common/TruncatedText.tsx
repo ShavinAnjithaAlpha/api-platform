@@ -27,11 +27,21 @@ export type TruncatedTextProps = {
   maxCharacters?: number;
 };
 
+/**
+ * Splits text into user-perceived characters, so a limit never cuts inside an
+ * accent, a flag or a joined emoji. Falls back to code points where
+ * `Intl.Segmenter` is unavailable.
+ */
+const graphemes = (text: string): string[] =>
+  typeof Intl !== 'undefined' && 'Segmenter' in Intl
+    ? Array.from(new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(text), (part) => part.segment)
+    : Array.from(text);
+
 /** Inherits typography from its parent and reveals clipped text on hover or focus. */
 export function TruncatedText({ text, maxLines = 1, maxCharacters }: TruncatedTextProps) {
   const ref = useRef<HTMLSpanElement>(null);
   const [overflows, setOverflows] = useState(false);
-  const characters = Array.from(text);
+  const characters = graphemes(text);
   const limit = maxCharacters === undefined ? undefined : Math.max(0, Math.floor(maxCharacters));
   const shortened = limit !== undefined && characters.length > limit;
   const visibleText = shortened ? `${characters.slice(0, limit).join('')}…` : text;

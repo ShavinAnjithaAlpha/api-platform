@@ -27,6 +27,7 @@ import {
   aRestApi,
   apiUrl,
   collection,
+  failure,
   manyRestApis,
   recorder,
   type GraphQLApiFixture,
@@ -545,5 +546,55 @@ describe('ApiListPage — row and card actions', () => {
     for (const heading of ['Name', 'Description', 'Type', 'Last Updated']) {
       expect(within(rows).getByText(heading)).toBeInTheDocument();
     }
+  });
+});
+
+describe('ApiListPage — telling versions apart', () => {
+  const versions = [
+    aRestApi({ id: 'orders-v1', displayName: 'Orders API', version: '1.0.0' }),
+    aRestApi({ id: 'orders-v2', displayName: 'Orders API', version: '2.0.0' }),
+  ];
+
+  it('shows each version next to the name in the list view', async () => {
+    server.use(collection('/rest-apis', versions));
+    renderPage();
+
+    const rows = await screen.findByTestId('api-list-view');
+    expect(within(rows).getByText('v1.0.0')).toBeInTheDocument();
+    expect(within(rows).getByText('v2.0.0')).toBeInTheDocument();
+  });
+
+  it('shows each version next to the name on the grid cards', async () => {
+    server.use(collection('/rest-apis', versions));
+    const { user } = renderPage();
+
+    await screen.findAllByText('Orders API');
+    await user.click(screen.getByRole('button', { name: 'Grid view' }));
+
+    expect(await screen.findByText('v1.0.0')).toBeInTheDocument();
+    expect(screen.getByText('v2.0.0')).toBeInTheDocument();
+  });
+});
+
+describe('ApiList — when the list fails to load', () => {
+  it('keeps the sidebar beside the error', async () => {
+    server.use(failure('get', '/rest-apis', 500, 'INTERNAL_SERVER_ERROR'));
+    renderWithProviders(
+      <ApiScopeProvider orgId={ORG} projectId={PROJECT}>
+        <Routes>
+          <Route
+            element={<ApiList sidebar={<div>type statistics</div>} />}
+            path="/organizations/:orgHandle/projects/:projectHandler/apis"
+          />
+        </Routes>
+      </ApiScopeProvider>,
+      {
+        route: `/organizations/${ORG}/projects/${PROJECT}/apis`,
+        scope: makeConsoleScope(),
+      },
+    );
+
+    expect(await screen.findByText('type statistics')).toBeInTheDocument();
+    expect(screen.queryByText('Orders API')).not.toBeInTheDocument();
   });
 });

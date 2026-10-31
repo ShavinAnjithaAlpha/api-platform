@@ -243,12 +243,16 @@ export function ApiList({
   const pageApis = filteredApis.slice(start, end);
   // While the next page loads, `keepPreviousData` leaves the old window in
   // place; re-slicing it at the new offset would flash an empty page, so keep
-  // showing the page that was last complete.
-  const settledApis = useRef<ListableApi[]>([]);
+  // showing the page that was last complete. Only when it came from the same
+  // search, type filter and view, though: rows from another query (say,
+  // unfiltered ones under a REST filter) must never be shown as if they matched.
+  const viewKey = `${filterKey}\u0000${view}`;
+  const settledApis = useRef<{ key: string; apis: ListableApi[] }>({ key: '', apis: [] });
   useEffect(() => {
-    if (!isPlaceholderData) settledApis.current = pageApis;
+    if (!isPlaceholderData) settledApis.current = { key: viewKey, apis: pageApis };
   });
-  const apis = isPlaceholderData ? settledApis.current : pageApis;
+  const apis =
+    isPlaceholderData && settledApis.current.key === viewKey ? settledApis.current.apis : pageApis;
   // Deleting the last card of the last page leaves `page` past the end. Render
   // the clamped value (an out-of-range `page` makes TablePagination complain),
   // and correct the state so the next request asks for a window that exists.
@@ -287,6 +291,16 @@ export function ApiList({
     );
   const createApi = () => navigate(routes.newApi(orgHandle, projectHandler));
 
+  const layoutSx = {
+    display: 'grid',
+    gridTemplateColumns: {
+      xs: 'minmax(0, 1fr)',
+      lg: sidebar ? 'minmax(0, 1fr) 280px' : 'minmax(0, 1fr)',
+    },
+    gap: 4,
+    alignItems: 'start',
+  } as const;
+
   // `isPending` rather than `isLoading`: the queries stay disabled until the
   // route's org/project resolve, and in that window `isLoading` is already
   // false with no data, which would flash the "No APIs yet" empty state.
@@ -294,7 +308,13 @@ export function ApiList({
     return <LoadingState label={intl.formatMessage(messages.loading)} />;
   }
   if (error) {
-    return <ErrorState message={intl.formatMessage(messages.errorMessage)} />;
+    // The sidebar (the type statistics and their filters) outlives a failed list.
+    return (
+      <Box sx={layoutSx}>
+        <ErrorState message={intl.formatMessage(messages.errorMessage)} />
+        {sidebar && <Box sx={{ minWidth: 0 }}>{sidebar}</Box>}
+      </Box>
+    );
   }
 
   return (
@@ -317,17 +337,7 @@ export function ApiList({
           operationId="CreateRESTAPI"
         />
       ) : (
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: {
-              xs: 'minmax(0, 1fr)',
-              lg: sidebar ? 'minmax(0, 1fr) 280px' : 'minmax(0, 1fr)',
-            },
-            gap: 4,
-            alignItems: 'start',
-          }}
-        >
+        <Box sx={layoutSx}>
           <Stack spacing={2.5} sx={{ minWidth: 0 }}>
             <Box
               sx={{

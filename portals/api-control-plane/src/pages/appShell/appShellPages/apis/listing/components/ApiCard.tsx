@@ -16,11 +16,12 @@
  * under the License.
  */
 
-import { ListingCard } from '@wso2/oxygen-ui';
+import { Box, ListingCard } from '@wso2/oxygen-ui';
 import { defineMessages, useIntl } from 'react-intl';
 
 import { thumbnailApiType, type ListableApi } from '../apiListItem';
 import { ApiThumbnailAvatar } from '../../components/ApiThumbnailAvatar';
+import { VersionChip } from './RestApiChips';
 import { relativeTime } from '@/utils/relativeTime';
 import { useCan } from '@/permissions/useCan';
 
@@ -65,7 +66,15 @@ export function ApiCard({ api, onOpen, onDelete }: ApiCardProps) {
       }
       onClick={() => onOpen(api)}
       onDelete={onDelete && canDelete ? () => onDelete(api) : undefined}
-      title={api.displayName}
+      // The name alone is ambiguous across versions of the same API.
+      title={
+        <Box component="span" sx={{ alignItems: 'center', display: 'flex', gap: 1, minWidth: 0 }}>
+          <Box component="span" sx={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {api.displayName}
+          </Box>
+          <VersionChip version={api.version} />
+        </Box>
+      }
       updatedDateTime={updated || undefined}
       updatedTime={updated ? relativeTime(updated) : undefined}
     />

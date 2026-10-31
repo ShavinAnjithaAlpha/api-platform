@@ -159,8 +159,12 @@ export const useAllGraphQLApis = (
 
   const isPending = firstPage.isPending || remainingPages.some((page) => page.isPending);
   const error = firstPage.error ?? remainingPages.find((page) => page.error)?.error;
+  // Whole server pages are fetched, so trim back to the `max` that was asked for.
   const list = firstPage.isSuccess
-    ? [...firstPage.data.list, ...remainingPages.flatMap((page) => page.data?.list ?? [])]
+    ? [...firstPage.data.list, ...remainingPages.flatMap((page) => page.data?.list ?? [])].slice(
+        0,
+        options.max || undefined,
+      )
     : undefined;
 
   return {

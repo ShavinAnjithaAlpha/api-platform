@@ -72,7 +72,7 @@ describe('useAllGraphQLApis — windowing', () => {
 
     const { result } = renderApiHook(() => useAllGraphQLApis({}, {}, { max: 150 }));
 
-    await waitFor(() => expect(result.current.data?.list.length).toBeGreaterThanOrEqual(150));
+    await waitFor(() => expect(result.current.data?.list).toHaveLength(150));
     await settle();
     expect(offsets()).toEqual(['0', '100']);
   });

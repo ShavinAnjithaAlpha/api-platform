@@ -32,6 +32,17 @@ describe('TruncatedText', () => {
     expect(text.getAttribute('tabindex')).toBe('0');
   });
 
+  it('does not cut a combining accent or a joined emoji in half', () => {
+    // "e" + combining acute is one visible character, as is a family emoji.
+    const accented = 'e\u0301e\u0301e\u0301e\u0301';
+    render(<TruncatedText text={accented} maxCharacters={2} />);
+    expect(screen.getByText('e\u0301e\u0301…')).toBeInTheDocument();
+
+    const family = '\u{1F468}\u200D\u{1F469}\u200D\u{1F467}\u{1F468}\u200D\u{1F469}\u200D\u{1F467}';
+    render(<TruncatedText text={family} maxCharacters={1} />);
+    expect(screen.getByText('\u{1F468}\u200D\u{1F469}\u200D\u{1F467}…')).toBeInTheDocument();
+  });
+
   it('enables the tooltip when the rendered text exceeds the line limit', () => {
     vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(60);
     vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(40);

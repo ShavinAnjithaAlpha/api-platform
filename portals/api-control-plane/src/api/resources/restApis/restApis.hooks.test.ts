@@ -400,7 +400,7 @@ describe('useAllRestApis — windowing', () => {
 
     const { result } = renderApiHook(() => useAllRestApis({}, {}, { max: 150 }));
 
-    await waitFor(() => expect(result.current.data?.list.length).toBeGreaterThanOrEqual(150));
+    await waitFor(() => expect(result.current.data?.list).toHaveLength(150));
     await settle();
     // 150 needs the first two server pages, not all three.
     expect(offsets()).toEqual(['0', '100']);
