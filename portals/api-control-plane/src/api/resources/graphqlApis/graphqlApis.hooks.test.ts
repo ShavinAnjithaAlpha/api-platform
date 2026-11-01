@@ -77,6 +77,19 @@ describe('useAllGraphQLApis — windowing', () => {
     expect(offsets()).toEqual(['0', '100']);
   });
 
+  it('treats `max: 0` as nothing wanted, not as no limit', async () => {
+    server.use(collection('/graphql-apis', manyGraphQLApis(5), { record: requests }));
+
+    const { result } = renderApiHook(() => useAllGraphQLApis({}, {}, { max: 0 }));
+
+    await waitFor(() => expect(result.current.data?.list).toEqual([]));
+    await settle();
+    // One cheap request, so the total still arrives.
+    expect(requests.count()).toBe(1);
+    expect(requests.last()?.params.get('limit')).toBe('1');
+    expect(result.current.data?.pagination.total).toBe(5);
+  });
+
   it('sends no request while disabled', async () => {
     server.use(collection('/graphql-apis', manyGraphQLApis(5), { record: requests }));
 

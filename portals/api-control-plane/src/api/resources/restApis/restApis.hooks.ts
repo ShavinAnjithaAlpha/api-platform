@@ -158,7 +158,12 @@ export const useAllRestApis = (
 ) => {
   const { org, projectId } = useApiScope(overrides);
   const enabled = Boolean(org && projectId) && options.enabled !== false;
-  const firstLimit = options.max ? Math.min(LIST_MAX_PAGE_SIZE, options.max) : LIST_MAX_PAGE_SIZE;
+  // `max: 0` is a real limit (nothing wanted), not "no limit": ask for one item
+  // so `pagination.total` still arrives, and return none of it.
+  const firstLimit =
+    options.max === undefined
+      ? LIST_MAX_PAGE_SIZE
+      : Math.min(LIST_MAX_PAGE_SIZE, Math.max(1, options.max));
 
   const firstPage = useQuery({
     ...restApiQueries.list(org!, {
@@ -177,7 +182,7 @@ export const useAllRestApis = (
 
   const total = firstPage.data?.pagination.total ?? 0;
   // With `max`, only the first `max` items are wanted, however many exist.
-  const wanted = options.max ? Math.min(total, options.max) : total;
+  const wanted = options.max === undefined ? total : Math.min(total, options.max);
   const remainingOffsets = Array.from(
     { length: Math.max(0, Math.ceil(wanted / LIST_MAX_PAGE_SIZE) - 1) },
     (_, index) => (index + 1) * LIST_MAX_PAGE_SIZE,
@@ -201,7 +206,7 @@ export const useAllRestApis = (
   const list = firstPage.isSuccess
     ? [...firstPage.data.list, ...remainingPages.flatMap((page) => page.data?.list ?? [])].slice(
         0,
-        options.max || undefined,
+        options.max,
       )
     : undefined;
 
