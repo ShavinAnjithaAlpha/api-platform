@@ -51,9 +51,9 @@ export type GatewaysFeatureProps = {
  * The extension's `render(port)` result: a self-contained list/create/edit flow
  * that switches view with local state rather than nested routes (so the plugin
  * never depends on the host's router instance — the same shape as the pipelines
- * feature). It owns the data: it loads `/managed-gateways`, platform-api's
- * native `/gateways` (self-hosted — see `selfHostedGatewaysApi`) and
- * `/environments` through the host-injected `apiFetch` and feeds the
+ * feature). It owns the data: it loads `/managed-gateways`,
+ * `/self-hosted-gateways` (see `selfHostedGatewaysApi`) and `/environments`
+ * through the host-injected `apiFetch` and feeds the
  * presentational list/form.
  */
 /**
@@ -207,9 +207,9 @@ const GatewaysFeature: FC<GatewaysFeatureProps> = ({ port, gatewayTypes }) => {
 
   /**
    * The self-hosted path, mirroring `submitGateway` but against
-   * `selfHostedClient` (platform-api's native `/gateways`, not
-   * `/managed-gateways`). A freshly created gateway opens on its setup steps with the
-   * registration token minted for it; generating another token there revokes that one.
+   * `selfHostedClient` (`/self-hosted-gateways`). A freshly created gateway opens
+   * on its setup steps with the registration token minted for it; reconfiguring
+   * there revokes that one.
    */
   const submitSelfHostedGateway = useCallback(
     async (input: SelfHostedGatewayInput, gatewayId?: string): Promise<'saved' | 'opened' | 'failed'> => {
@@ -369,7 +369,9 @@ const GatewaysFeature: FC<GatewaysFeatureProps> = ({ port, gatewayTypes }) => {
           setEditingGatewayId(gatewayId);
           setView('edit');
         }}
+        onHasActiveRegistrationToken={selfHostedClient.hasActiveToken}
         onGenerateRegistrationToken={selfHostedClient.generateToken}
+        onReconfigureRegistrationToken={selfHostedClient.reconfigureToken}
         notify={notify}
       />
     );

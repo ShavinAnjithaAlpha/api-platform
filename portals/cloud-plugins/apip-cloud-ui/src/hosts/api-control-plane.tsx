@@ -80,6 +80,15 @@ const API_GATEWAY_TYPES: GatewayType[] = ['regular', 'event'];
 const API_GATEWAY_VERSIONS = runtimeConfig.gatewayVersions;
 
 /**
+ * TEMPORARY: the control-plane host shown in the self-hosted gateway setup
+ * commands (Gateways and Deploy pages), hardcoded to the WSO2 Cloud production
+ * host for now. The per-environment `GATEWAY_CONTROL_PLANE_HOST` runtime config
+ * is ignored until it is fixed to give the right host for every environment.
+ */
+const GATEWAY_CONTROL_PLANE_HOST =
+  'prod-wso2cloud.gateway.cloud.wso2.com/apip-platform-api-apip-platform-api-internal-endpoint';
+
+/**
  * The API Deploy override. The built-in Deploy page sits inside `AppPage`, which
  * supplies the page padding and breadcrumbs, so the scope picker shown before an
  * API is in scope gets that same container here; without it the picker card
@@ -94,7 +103,7 @@ function CloudDeployPage({ port }: { port: CloudHostPort }) {
       requires="api"
       to={routes.apiDeploy}
     >
-      <DeployFeature port={port} />
+      <DeployFeature port={{ ...port, gatewayControlPlaneHost: GATEWAY_CONTROL_PLANE_HOST }} />
     </ScopeGate>
   );
   return isApiScope ? gate : <AppPage>{gate}</AppPage>;
@@ -236,11 +245,12 @@ export const cloudPluginFeatures: CloudPluginFeature<ApiControlPlaneCloudEntry>[
         render: (port) => (
           <GatewaysFeature
             gatewayTypes={API_GATEWAY_TYPES}
+            // Hardcoded for now (see GATEWAY_CONTROL_PLANE_HOST); the gateways plugin
+            // reads `controlPlaneHost`.
             port={{
               ...port,
               gatewayVersions: API_GATEWAY_VERSIONS,
-              // The host names it `gatewayControlPlaneHost`; the plugin's port calls it `controlPlaneHost`.
-              controlPlaneHost: port.gatewayControlPlaneHost,
+              controlPlaneHost: GATEWAY_CONTROL_PLANE_HOST,
             }}
           />
         ),
@@ -275,7 +285,11 @@ export const cloudPluginFeatures: CloudPluginFeature<ApiControlPlaneCloudEntry>[
         order: 0,
         routePath: 'deploy',
         render: (port, artifactHandle) => (
-          <DeployFeature artifactHandle={artifactHandle} kind="GraphQLApi" port={port} />
+          <DeployFeature
+            artifactHandle={artifactHandle}
+            kind="GraphQLApi"
+            port={{ ...port, gatewayControlPlaneHost: GATEWAY_CONTROL_PLANE_HOST }}
+          />
         ),
         label: 'Deploy',
         level: 'api',
