@@ -743,6 +743,10 @@
     "defaultMessage": "Delete {apiName}",
     "description": "Accessible label for the API delete button."
   },
+  "apiCard.deleteLabel": {
+    "defaultMessage": "Delete",
+    "description": "Visible text of the labelled delete button on an API row."
+  },
   "apiCard.gatewayManaged.label": {
     "defaultMessage": "Gateway-managed",
     "description": "Chip marking an API the console discovered from a gateway and cannot edit."
@@ -3037,7 +3041,7 @@
     "description": "Token-count limit unit. {amount} and {timeUnit} describe the window."
   },
   "apiControlPlane.pages.appShell.appShellPages.projects.ProjectCreatePage.action.back": {
-    "defaultMessage": "Back to Projects"
+    "defaultMessage": "Back to projects"
   },
   "apiControlPlane.pages.appShell.appShellPages.projects.ProjectCreatePage.action.cancel": {
     "defaultMessage": "Cancel"
@@ -3119,7 +3123,7 @@
     "description": "Column header over the last-updated timestamp."
   },
   "apiControlPlane.pages.appShell.appShellPages.projects.components.ProjectMetadata.created": {
-    "defaultMessage": "<muted>Created</muted> {date}"
+    "defaultMessage": "Created"
   },
   "apiControlPlane.pages.appShell.appShellPages.projects.components.ProjectMetadata.descriptionFallback": {
     "defaultMessage": "Add an API to this project."
@@ -4490,13 +4494,10 @@
     "defaultMessage": "Quick actions"
   },
   "apiControlPlane.projects.ProjectStatistics.apis": {
-    "defaultMessage": "APIs"
+    "defaultMessage": "API types"
   },
   "apiControlPlane.projects.ProjectStatistics.async": {
     "defaultMessage": "Async / events"
-  },
-  "apiControlPlane.projects.ProjectStatistics.deployments": {
-    "defaultMessage": "Deployments"
   },
   "apiControlPlane.projects.ProjectStatistics.graphql": {
     "defaultMessage": "GraphQL"
@@ -4509,6 +4510,15 @@
   },
   "apiControlPlane.projects.ProjectStatistics.selectType": {
     "defaultMessage": "Filter APIs by {type}"
+  },
+  "apiControlPlane.projects.ProjectStatistics.total": {
+    "defaultMessage": "Total"
+  },
+  "apiListPage.clearFilters": {
+    "defaultMessage": "Clear filters"
+  },
+  "apiListPage.clearSearch": {
+    "defaultMessage": "Clear search"
   },
   "apiListPage.createApiButton": {
     "defaultMessage": "Create API",
@@ -4562,10 +4572,6 @@
   "apiListPage.searchPlaceholder": {
     "defaultMessage": "Search APIs"
   },
-  "apiListPage.title": {
-    "defaultMessage": "APIs",
-    "description": "Page title for the API list page"
-  },
   "apiListPage.view.grid": {
     "defaultMessage": "Grid view",
     "description": "Accessible label for the button switching to the card grid."
@@ -4575,16 +4581,16 @@
     "description": "Accessible label for the button switching to compact rows."
   },
   "apiListView.column.api": {
-    "defaultMessage": "API"
+    "defaultMessage": "Name"
+  },
+  "apiListView.column.description": {
+    "defaultMessage": "Description"
   },
   "apiListView.column.type": {
     "defaultMessage": "Type"
   },
   "apiListView.column.updated": {
-    "defaultMessage": "Updated"
-  },
-  "apiListView.column.version": {
-    "defaultMessage": "Version"
+    "defaultMessage": "Last Updated"
   },
   "appLayout.breadcrumb.home": {
     "defaultMessage": "Home"
@@ -5332,6 +5338,10 @@
   "project.card.updatedAt": {
     "defaultMessage": "Updated {relative}",
     "description": "Footer timestamp; {relative} is a phrase such as \"3 hours ago\"."
+  },
+  "project.list.clearSearch": {
+    "defaultMessage": "Clear search",
+    "description": "Button that empties the search box when no project matches it."
   },
   "project.list.createProjectButton": {
     "defaultMessage": "Create Project"
