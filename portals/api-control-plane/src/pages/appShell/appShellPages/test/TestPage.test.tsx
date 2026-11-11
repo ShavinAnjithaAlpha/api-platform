@@ -17,11 +17,12 @@
  */
 
 import { http, HttpResponse } from 'msw';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiScopeProvider } from '@/api/core/ApiScopeProvider';
 import { resetHttpClient } from '@/api/core/http';
 import { aDeployment, aGateway, aRestApi, apiUrl, listEnvelope, neverResponds } from '@/test/msw';
+import { runtimeConfig } from '@/config/runtime';
 import { makeConsoleScope } from '@/test/mockScope';
 import { server } from '@/test/server';
 import { useLocation } from 'react-router-dom';
@@ -59,13 +60,19 @@ vi.mock('./console/TestConsoleSpecViewer', () => ({
   default: ({
     baseUrl,
     callMode,
+    callModeSwitchable = true,
     onCallModeChange,
   }: {
     baseUrl: string;
     callMode: string;
+    callModeSwitchable?: boolean;
     onCallModeChange: (mode: string) => void;
   }) => (
-    <div data-callmode={callMode} data-testid="spec-viewer">
+    <div
+      data-callmode={callMode}
+      data-callmode-switchable={String(callModeSwitchable)}
+      data-testid="spec-viewer"
+    >
       {baseUrl}
       <button onClick={() => onCallModeChange('direct')} type="button">
         stand-in: switch to direct
@@ -156,6 +163,23 @@ const happyPath = () => [
       status: 'success',
     }),
   ),
+];
+
+/** The happy path, with the API deployed only to a self-hosted gateway. */
+const selfHostedPath = () => [
+  http.get(apiUrl('/rest-apis/payments-api/gateways'), () =>
+    HttpResponse.json(
+      listEnvelope([
+        {
+          ...GATEWAY,
+          associatedAt: '2026-01-01T00:00:00Z',
+          isDeployed: true,
+          properties: { gatewayMode: 'self-hosted' },
+        },
+      ]),
+    ),
+  ),
+  ...happyPath(),
 ];
 
 /** Every request the page makes when the API is deployed nowhere. */
@@ -593,6 +617,85 @@ describe('TestPage — proxy or direct', () => {
       expect(screen.getByTestId('spec-viewer')).toHaveAttribute('data-callmode', 'direct'),
     );
     expectNoRenderLoop();
+  });
+
+  it('offers the switch for a WSO2-managed gateway', async () => {
+    server.use(...happyPath());
+
+    renderPage();
+
+    expect(await screen.findByTestId('spec-viewer')).toHaveAttribute(
+      'data-callmode-switchable',
+      'true',
+    );
+    expectNoRenderLoop();
+  });
+
+  describe('in the cloud', () => {
+    const originalMode = runtimeConfig.deploymentMode;
+    beforeEach(() => {
+      runtimeConfig.deploymentMode = 'cloud';
+    });
+    afterEach(() => {
+      runtimeConfig.deploymentMode = originalMode;
+    });
+
+    it('calls a self-hosted gateway directly and offers no switch', async () => {
+      server.use(...selfHostedPath());
+
+      renderPage();
+
+      // The relay runs in the control plane and cannot reach a gateway on the
+      // customer's own infrastructure, so "Through proxy" could only fail.
+      await waitFor(() =>
+        expect(screen.getByTestId('spec-viewer')).toHaveAttribute('data-callmode', 'direct'),
+      );
+      expect(screen.getByTestId('spec-viewer')).toHaveAttribute(
+        'data-callmode-switchable',
+        'false',
+      );
+      expectNoRenderLoop();
+    });
+
+    it('keeps the stored preference when a self-hosted gateway forces direct', async () => {
+      server.use(...selfHostedPath());
+
+      const first = renderPage();
+      await waitFor(() =>
+        expect(screen.getByTestId('spec-viewer')).toHaveAttribute('data-callmode', 'direct'),
+      );
+      first.unmount();
+
+      // Back on a WSO2-managed gateway, the default relay is still in force:
+      // the self-hosted gateway overrode the mode without persisting it.
+      server.use(...happyPath());
+      renderPage();
+
+      await waitFor(() =>
+        expect(screen.getByTestId('spec-viewer')).toHaveAttribute('data-callmode', 'proxy'),
+      );
+      expectNoRenderLoop();
+    });
+  });
+
+  it('keeps the switch for a self-hosted-tagged gateway on-prem', async () => {
+    // On-prem has no managed/self-hosted split: the relay runs in the same
+    // network as every gateway, and the create flow tags gateways
+    // "self-hosted" regardless, so the tag must not hide the switch there.
+    const originalMode = runtimeConfig.deploymentMode;
+    runtimeConfig.deploymentMode = 'onprem';
+    try {
+      server.use(...selfHostedPath());
+
+      renderPage();
+
+      const viewer = await screen.findByTestId('spec-viewer');
+      expect(viewer).toHaveAttribute('data-callmode', 'proxy');
+      expect(viewer).toHaveAttribute('data-callmode-switchable', 'true');
+      expectNoRenderLoop();
+    } finally {
+      runtimeConfig.deploymentMode = originalMode;
+    }
   });
 
   it('offers no transport choice in the cURL view', async () => {

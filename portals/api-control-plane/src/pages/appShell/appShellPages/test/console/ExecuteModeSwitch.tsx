@@ -125,6 +125,23 @@ export function ExecuteModeSwitch({ store }: ExecuteModeSwitchProps) {
 }
 
 /**
+ * The row holding the switch. Renders nothing while the store says only one
+ * mode can work for the selected gateway — a self-hosted gateway, which the
+ * relay cannot reach, is only ever called directly — so no empty row is left
+ * above Execute either.
+ */
+function ExecuteModeRow({ store }: ExecuteModeSwitchProps) {
+  const canSwitch = useSyncExternalStore(store.subscribe, store.getCanSwitch, store.getCanSwitch);
+  if (!canSwitch) return null;
+
+  return (
+    <div className="test-console-mode-row">
+      <ExecuteModeSwitch store={store} />
+    </div>
+  );
+}
+
+/**
  * Swagger plugin that places the switch above the Execute button.
  */
 export const executeModeSwitchPlugin = (store: CallModeStore) => () => ({
@@ -140,9 +157,7 @@ export const executeModeSwitchPlugin = (store: CallModeStore) => () => ({
         // beside Execute. Staying a sibling keeps swagger's own pairing intact
         // and leaves this file responsible only for the switch's own line.
         <>
-          <div className="test-console-mode-row">
-            <ExecuteModeSwitch store={store} />
-          </div>
+          <ExecuteModeRow store={store} />
           <Original {...props} />
         </>
       ),

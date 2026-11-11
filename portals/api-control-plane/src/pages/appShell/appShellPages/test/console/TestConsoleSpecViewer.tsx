@@ -167,6 +167,12 @@ export type TestConsoleSpecViewerProps = {
   callMode: TestCallMode;
   /** Changes the mode. Driven by the switch swagger renders beside Execute. */
   onCallModeChange: (mode: TestCallMode) => void;
+  /**
+   * Whether the proxy/direct switch is offered. False when only `callMode` can
+   * work — e.g. a self-hosted gateway, which the relay cannot reach. Defaults
+   * to true.
+   */
+  callModeSwitchable?: boolean;
   /** The API under test. Sent to the relay, which resolves the target itself. */
   restApiId: string;
   /** Which of the API's deployed gateways to send to. */
@@ -195,6 +201,7 @@ type LiveProps = {
 export default function TestConsoleSpecViewer({
   baseUrl,
   callMode,
+  callModeSwitchable = true,
   onCallModeChange,
   extraHeaders,
   extraQueryParams,
@@ -257,11 +264,14 @@ export default function TestConsoleSpecViewer({
    * other mount-time value swagger keeps, and kept current through its own
    * subscription rather than through props it can never receive again.
    */
-  const callModeStore = useRef(createCallModeStore(callMode)).current;
+  const callModeStore = useRef(createCallModeStore(callMode, callModeSwitchable)).current;
   callModeStore.setRequestHandler(onCallModeChange);
   useEffect(() => {
     callModeStore.setMode(callMode);
   }, [callMode, callModeStore]);
+  useEffect(() => {
+    callModeStore.setCanSwitch(callModeSwitchable);
+  }, [callModeSwitchable, callModeStore]);
 
   const plugins = useMemo(
     () => [testConsoleRelayPlugin(relay), executeModeSwitchPlugin(callModeStore)],

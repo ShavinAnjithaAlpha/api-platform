@@ -31,11 +31,12 @@ import { isApiError } from '@/api/core/errors';
 import { AppPage } from '@/components/AppPage';
 import { GatewayIllustration } from '@/components/illustrations/GatewayIllustration';
 import { EmptyState, ErrorState, LoadingState } from '@/components/StateViews';
+import { runtimeConfig } from '@/config/runtime';
 import { routes } from '@/routes/paths';
 import { useConsoleScope } from '@/scope/ConsoleScopeProvider';
 import { useNow } from '@/hooks/useNow';
 import { ScopeGate } from '@/scope/ScopeGate';
-import { buildInvokeUrl, gatewayEndpoint } from '../gateways/utils/gatewayDisplay';
+import { buildInvokeUrl, gatewayEndpoint, gatewayMode } from '../gateways/utils/gatewayDisplay';
 import { CurlBuilder } from './curl/CurlBuilder';
 import { useTestCallMode } from './utils/callMode';
 import { deployedGateways as deployedGatewaysOf } from './utils/deployedGateways';
@@ -177,7 +178,6 @@ function TestConsole() {
   // The proxy mode relays through the control plane (an InvokeRESTAPIOnGateway
   // call); a caller who may not relay sends the request from the browser.
   const canRelay = useCan('InvokeRESTAPIOnGateway');
-  const callMode = canRelay ? storedCallMode : 'direct';
 
   const [selectedGatewayId, setSelectedGatewayId] = useState('');
   const [request, setRequest] = useState<ConsoleRequest | undefined>(undefined);
@@ -190,6 +190,14 @@ function TestConsole() {
 
   const selectedGateway =
     gateways.find((gateway) => gateway.id === selectedGatewayId) ?? gateways[0];
+
+  /** Self-hosted gateways use direct calls; preserve the stored relay preference. */
+  const selfHosted =
+    runtimeConfig.deploymentMode === 'cloud' &&
+    selectedGateway !== undefined &&
+    gatewayMode(selectedGateway) === 'self-hosted';
+  const relayAvailable = canRelay && !selfHosted;
+  const callMode = relayAvailable ? storedCallMode : 'direct';
 
   const resolvedBaseUrl = selectedGateway
     ? buildInvokeUrl(gatewayEndpoint(selectedGateway), apiQuery.data?.context)
@@ -437,6 +445,7 @@ function TestConsole() {
             <TestConsoleSpecViewer
               baseUrl={baseUrl}
               callMode={callMode}
+              callModeSwitchable={relayAvailable}
               extraHeaders={extraHeaders}
               extraQueryParams={extraQueryParams}
               // The BFF resolves the target from these three values; see

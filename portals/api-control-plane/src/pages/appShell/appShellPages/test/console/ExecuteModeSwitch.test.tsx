@@ -110,3 +110,34 @@ describe('ExecuteModeSwitch — behaviour', () => {
     });
   });
 });
+
+describe('ExecuteModeSwitch — when only one mode can work', () => {
+  it('renders no switch, and no empty row, while the store forbids switching', () => {
+    // A self-hosted gateway is unreachable from the relay, so only Direct can
+    // work; offering "Through proxy" would just produce a failed request.
+    const { container } = renderWrapped(createCallModeStore('direct', false));
+
+    expect(container.querySelector('.test-console-mode-row')).toBeNull();
+    expect(screen.queryByRole('button', { name: /Through proxy/i })).toBeNull();
+    // Execute itself is untouched.
+    expect(container.querySelector('.btn.execute')).not.toBeNull();
+  });
+
+  it('shows and hides the switch as the page changes gateway', async () => {
+    // Swagger keeps the first `plugins` value, so the row has to follow the
+    // store rather than a prop when the user picks another gateway.
+    const store = createCallModeStore('proxy', true);
+    const { container } = renderWrapped(store);
+    expect(container.querySelector('.test-console-mode-row')).not.toBeNull();
+
+    await vi.waitFor(() => {
+      store.setCanSwitch(false);
+      expect(container.querySelector('.test-console-mode-row')).toBeNull();
+    });
+
+    await vi.waitFor(() => {
+      store.setCanSwitch(true);
+      expect(screen.getByRole('button', { name: /Through proxy/i })).toBeInTheDocument();
+    });
+  });
+});

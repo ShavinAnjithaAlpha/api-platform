@@ -43,10 +43,23 @@ export type CallModeStore = {
   requestMode: (mode: TestCallMode) => void;
   /** Installs the handler `requestMode` delegates to. */
   setRequestHandler: (handler: (mode: TestCallMode) => void) => void;
+  /**
+   * `useSyncExternalStore` snapshot — whether the user may choose a mode at
+   * all. False when only one mode can work for the selected gateway (e.g. a
+   * self-hosted gateway the relay cannot reach), in which case the switch is
+   * not rendered.
+   */
+  getCanSwitch: () => boolean;
+  /** Publishes whether the switch is offered. Called by the page, not the switch. */
+  setCanSwitch: (canSwitch: boolean) => void;
 };
 
-export const createCallModeStore = (initial: TestCallMode): CallModeStore => {
+export const createCallModeStore = (
+  initial: TestCallMode,
+  initialCanSwitch = true,
+): CallModeStore => {
   let mode = initial;
+  let canSwitch = initialCanSwitch;
   let requestHandler: ((mode: TestCallMode) => void) | undefined;
   const listeners = new Set<() => void>();
 
@@ -67,6 +80,13 @@ export const createCallModeStore = (initial: TestCallMode): CallModeStore => {
     requestMode: (next) => requestHandler?.(next),
     setRequestHandler: (handler) => {
       requestHandler = handler;
+    },
+    getCanSwitch: () => canSwitch,
+    setCanSwitch: (next) => {
+      // Same no-op guard as `setMode`.
+      if (next === canSwitch) return;
+      canSwitch = next;
+      listeners.forEach((listener) => listener());
     },
   };
 };
